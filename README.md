@@ -2,7 +2,7 @@
 
 You have been doing great work so far – implementing different Web Solutions and getting hands on experience with many great DevOps tools. In previous projects you used **basic Infrastructure as a Service (IaaS)** offerings from AWS such as EC2 (Elastic Compute Cloud) as rented Virtual Machines and EBS (Elastic Block Store), you have also learned how to configure Key pairs and basic Security Groups.
 
-But the power of Clouds is not only in being able to rent Virtual Machines – it is much more than that. From now on, you will start gradually study different Cloud concepts and tools on example of AWS, but do not be worried, your knowledge will not be limited to only AWS specific concepts – overall principles are common across most of the major Cloud Providers (e.g., Microsoft Azure and Google Cloud Platform).
+But the power of Clouds is not only in being able to rent Virtual Machines – it is much more than that. From now on, you will gradually start studing different Cloud concepts and tools on example of AWS, but do not be worried, your knowledge will not be limited to only AWS specific concepts – overall principles are common across most of the major Cloud Providers (e.g., Microsoft Azure and Google Cloud Platform).
 
 **NOTE**: The next few projects will be implemented manually. Before you begin to automate infrastructure in the cloud, it is very important that you can build the solution manually. Otherwise, programming your automation may become frustrating very quickly.
 
@@ -78,7 +78,7 @@ Always make reference to the architectural diagram and ensure that your configur
 
     - **Webservers**: Access to Webservers should only be allowed from the Internal load balancer. So edit the inbound rule to reference the security group for the Internal Application load balancer. Also since we may need to ssh from bastion into the webservers , we also need to open ssh port in the inbound rule referencing the security group for the bastion.
 
-    - **Data Layer**: Access to the Data layer, which is comprised of Amazon Relational Database Service (RDS) and Amazon Elastic File System (EFS) must be carefully desinged – webservers should be able to connect to RDS through mysql port and also have access to EFS Mountpoint through NFS port using the security group for the webservers .Also since we may need to go from bastion into the RDS using mysql-client , we also need to open mysql port in the inbound rule referencing the security group for the bastion.
+    - **Data Layer**: Access to the Data layer, which is comprised of Amazon Relational Database Service (RDS) and Amazon Elastic File System (EFS) must be carefully designed – webservers should be able to connect to RDS through mysql port and also have access to EFS Mountpoint through NFS port using the security group for the webservers .Also since we may need to go from bastion into the RDS using mysql-client , we also need to open mysql port in the inbound rule referencing the security group for the bastion.
 
 
 ## Proceed With Compute Resources
@@ -108,7 +108,7 @@ You will need TLS certificates to handle secured connectivity to your Applicatio
 Amazon Elastic File System (Amazon EFS) provides a simple, scalable, fully managed elastic Network File System (NFS) for use with AWS Cloud services and on-premises resources. In this project, we will utulize EFS service and mount filesystems on both Nginx and Webservers to store data.
 
 1. Create an EFS filesystem
-2. Create an EFS mount target per AZ in the VPC, specify the subnets for the webservers which is private-subnet 1 and 2, so that the resources in that subnet will be able to mount on the file system. Whenever you specify your mount subnet, the amazon elastic file system becomes available in that subnet.
+2. Create an EFS mount target per AZ in the VPC, specify the subnets for the webservers which is private-subnet 1 and 2, so that the resources in that subnet will be able to mount on the file system. Whenever or where-ever you specify your mount subnet, the amazon elastic file system becomes available in that subnet.
 3. Associate the Security groups created earlier for data layer.
 4. Create an EFS access point. This is what we specify the webserver to mount with. So we need to create two access points,so that we dont have to mount the two websites on a single access point, one for wordpress website and the other for tooling website. If this is not created differently the file can override each other and it will not be good for our infrastruture.(Give it a name and leave all other settings as default)
 
@@ -117,7 +117,7 @@ Amazon Elastic File System (Amazon EFS) provides a simple, scalable, fully manag
 
 Amazon Relational Database Service (Amazon RDS) is a managed distributed relational database service by Amazon Web Services. This web service running in the cloud designed to simplify setup, operations, maintenans & scaling of relational databases. Without RDS, Database Administrators (DBA) have more work to do, due to RDS, some DBAs have become jobless
 
-To ensure that yout databases are highly available and also have failover support in case one availability zone fails, we will configure a multi-AZ set up of RDS MySQL database instance. In our case, since we are only using 2 AZs, we can only failover to one, but the same concept applies to 3 Availability Zones. We will not consider possible failure of the whole Region, but for this AWS also has a solution – this is a more advanced concept that will be discussed in following projects.
+To ensure that your databases are highly available and also have failover support in case one availability zone fails, we will configure a multi-AZ set up of RDS MySQL database instance. In our case, since we are only using 2 AZs, we can only failover to one, but the same concept applies to 3 Availability Zones. We will not consider possible failure of the whole Region, but for this AWS also has a solution – this is a more advanced concept that will be discussed in following projects.
 
 To configure RDS, follow steps below:
 
@@ -130,7 +130,7 @@ To configure RDS, follow steps below:
 7. Encrypt the database using the KMS key created earlier
 8. Enable CloudWatch monitoring and export Error and Slow Query logs (for production, also include Audit)
 
-**Note** This service is an expensinve one. Ensure to review the monthly cost before creating. (DO NOT LEAVE ANY SERVICE RUNNING FOR LONG)
+**Note** This service is an expensive one. Ensure to review the monthly cost before creating. (DO NOT LEAVE ANY SERVICE RUNNING FOR LONG)
 
 ## Set Up Compute Resources for Nginx
 
@@ -282,10 +282,10 @@ You need to ensure that the main domain for the WordPress website can be reached
 
 Create other records such as CNAME, alias and A records.
 
-**NOTE**: You can use either CNAME or alias records to achieve the same thing. But alias record has better functionality because it is a faster to resolve DNS record, and can coexist with other records on that name. Read here to get to know more about the differences.
+**NOTE**: You can use either CNAME or alias records to achieve the same thing. But alias record has better functionality because it is a faster to resolve DNS record, and can coexist with other records on that name.
 
 - Create an alias record for the root domain and direct its traffic to the ALB DNS name.
-- Create an alias record for tooling.<yourdomain>.com and direct its traffic to the ALB DNS name.
+- Create an alias record for tooling.yourdomain.com and direct its traffic to the ALB DNS name.
 
 Congratulations!
 
@@ -317,15 +317,13 @@ Congratulations!
 22. Connect to the nginx server launched in the Private Subnet
 23. create a userdata.sh script to bring up nginx
 
+```
 sudo yum update -y
-
 sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-
 sudo yum install -y dnf-utils http://rpms.remirepo.net/enterprise/remi-release-7.rpm
-
 sudo yum install -y nginx git
-
 sudo systemctl restart nginx
+```
 
 20. Ensure that the nginx Target group is healthy
     1.  Check the security of the instance and ensure it allows port 80
