@@ -26,10 +26,9 @@ There are few requirements that must be met before you begin:
 - Move the DevOps account into the Dev OU.
 - Login to the newly created AWS account using the new email address.
 
-2. Create a free domain name for your fictitious company at Freenom domain registrar here.
+2. Create a domain name for your fictitious company.
 
-3. Create a hosted zone in AWS, and map it to your free domain from Freenom. **Watch how to do that here** https://youtu.be/IjcHp94Hq8A
-
+3. Create a hosted zone in AWS, and map it to your domain.
 **NOTE** : As you proceed with configuration, ensure that all resources are appropriately tagged, for example:
 
 - Project: <Give your project a name>
@@ -63,7 +62,7 @@ Always make reference to the architectural diagram and ensure that your configur
 
 7. Create 3 Elastic IPs
 
-8. Create a Nat Gateway and assign one of the Elastic IPs (*The other 2 will be used by Bastion hosts)
+8. Create a Nat Gateway and assign one of the Elastic IPs (The other 2 will be used by Bastion hosts)
   - Go back to your private route table and edit it to point to the nat gateway created
 
 9. Create a Security Group for: From our diagram
@@ -99,8 +98,8 @@ You will need to set up and configure compute resources inside your VPC. The rec
 You will need TLS certificates to handle secured connectivity to your Application Load Balancers (ALB).
 
 1. Navigate to AWS ACM
-2. Request a public wildcard certificate for the domain name you registered in Freenom
-3. Use DNS to validate the domain name
+2. Request a public wildcard certificate for the domain name
+3. Use DNS to validate the domain name and validate by creating records when further actions are required
 4. Tag the resource
 
 ## Setup EFS
@@ -125,6 +124,8 @@ To configure RDS, follow steps below:
 2. Create an RDS Instance for mysql 8.*.*
 3. To satisfy our architectural diagram, you will need to select either Dev/Test or Production Sample Template. But to minimize AWS cost, you can select the free tier. Do not create a standby instance option under Availability & durability sample template (The production template will enable Multi-AZ deployment)
 4. Configure other settings accordingly (For test purposes, most of the default settings are good to go). In the real world, you will need to size the database appropriately. You will need to get some information about the usage. If it is a highly transactional database that grows at 10GB weekly, you must bear that in mind while configuring the initial storage allocation, storage autoscaling, and maximum storage threshold.
+- Master username: onyi_admin
+- Master password: admin12345
 5. Configure VPC and security (ensure the database is not available from the Internet)
 6. Configure backups and retention
 7. Encrypt the database using the KMS key created earlier
@@ -132,13 +133,45 @@ To configure RDS, follow steps below:
 
 **Note** This service is an expensive one. Ensure to review the monthly cost before creating. (DO NOT LEAVE ANY SERVICE RUNNING FOR LONG)
 
+## Set up AMI
+
+The port for the nginx and webservers must be set to port 443, so that there will be a secure connection between the external loadbalancer and the nginx server and also the internal loadbalancer with the wordpress and tooling webservers. Therefore our loadbalancers must be sending traffic to port 443 and our nginx and webservers must be listening on port 443. When creating the target group you must select port 443. For this connection to be secure, we need to have a self signed certificate on the nginx and webservers. Therefore the AMIs must have these certificates resident in them.
+
+Provision three redhat instances for nginx, bastion and webservers. Install the neccessary software and certificates using the guild from installation.md file.
+
+When creating the certificate use the private dns name of the instance for the common name. 
+
+Create an AMI out of the EC2 instance.
+
+Look at the installation.md on the command for generating ssl certificates.
+
+## Compute Resources
+
+- Provision three redhat instances for nginx, bastion and webservers.
+- Install the neccessary software and certificates using the guild from installation.md file
+- Create an AMI out of the EC2 instance
+- Configure Target Groups Nginx and webservers (wordpress and tooling) and not for bastion because bastion will not be behind the loadbalancer.
+- Create the external and internal loadbalancers because you will update the reverse.conf file with the endpoint of the internal loadbalancer while creating launch template.
+- Update the reverse.conf file and push to github.
+- Prepare Launch Template For Nginx, bastion, wordpress webservers and tooling webservers. Use the userdata for the respective server.
+- Create the Autoscaling group for bastion and from bastion, create the wordpressdb and toolingdb inside the rds instance.
+
+![wordpressdb and toolingdb](./images/rds.PNG)
+
+- Configure Autoscaling For Nginx, bastion and webservers
+
+
 ## Set Up Compute Resources for Nginx
+
+For you to create an autoscaling group you need an ami and a launch template and a target group and the target group must have been attached to a load balancer.
+
+So we will create a target group followed by the launch template followed by the load balancer then the autoscaling group. Ofcourse before you create the launch template you need to create the ami.
 
 ### Provision EC2 Instances for Nginx
 
-1. Create an EC2 Instance based on Redhat Amazon Machine Image (AMI) in any 2 Availability Zones (AZ) in any AWS Region (it is recommended to use the Region that is closest to your customers). Use EC2 instance of T2 family (e.g. t2.micro or similar)
+1. Create an EC2 Instance based on Redhat Amazon Machine Image (AMI).
 
-2. Ensure that it has the following software installed:
+2. Ensure that it has the following software installed. Refer to installation.md file for bastion ami installation.
 
 - python
 - ntp
@@ -177,11 +210,12 @@ Configure Autoscaling For Nginx
 10. Set scale out if CPU utilization reaches 90%
 11. Ensure there is an SNS topic to send scaling notifications
 
-### Set Up Compute Resources for Bastion
+## Set Up Compute Resources for Bastion
 
 Provision the EC2 Instances for Bastion
-1. Create an EC2 Instance based on Redhat Amazon Machine Image (AMI) per each Availability Zone in the same Region and same AZ where you created Nginx server
-2. Ensure that it has the following software installed
+1. Create an EC2 Instance based on Redhat Amazon Machine Image (AMI) 
+
+2. Ensure that it has the following software installed. Refer to installation.md file for bastion ami installation.
 
   -  python
   -  ntp
@@ -192,8 +226,7 @@ Provision the EC2 Instances for Bastion
   -  epel-release
   -  htop
 
-3. Associate an Elastic IP with each of the Bastion EC2 Instances
-4. Create an AMI out of the EC2 instance
+3. Create an AMI out of the EC2 instance
 
 ### Prepare Launch Template For Bastion (One per subnet)
 
@@ -215,13 +248,13 @@ Since our bastion will not be placed under a load balancer, there wont be any ne
 7. Set scale out if CPU utilization reaches 90%
 8. Ensure there is an SNS topic to send scaling notifications
 
-### Set Up Compute Resources for Webservers
+## Set Up Compute Resources for Webservers
 #### Provision the EC2 Instances for Webservers
 Now, you will need to create 2 separate launch templates for both the WordPress and Tooling websites
 
-1. Create an EC2 Instance Redhat Amazon Machine Image (AMI) each for WordPress and Tooling websites per Availability Zone (in the same Region).
+1. Create an EC2 Instance Redhat Amazon Machine Image (AMI) each for WordPress and Tooling websites.
 
-2. Ensure that it has the following software installed
+2. Ensure that it has the following software installed. Refer to installation.md file for bastion ami installation.
 
   -  python
   -  ntp
@@ -272,8 +305,6 @@ To solve this problem, we must use a load balancer. But this time, it will be an
 
 **NOTE**: This process must be repeated for both WordPress and Tooling websites.
 
-
-
 ## Configuring DNS with Route53
 
 Earlier in this project you registered a free domain with Freenom and configured a hosted zone in Route53. But that is not all that needs to be done as far as DNS configuration is concerned.
@@ -287,11 +318,8 @@ Create other records such as CNAME, alias and A records.
 - Create an alias record for the root domain and direct its traffic to the ALB DNS name.
 - Create an alias record for tooling.yourdomain.com and direct its traffic to the ALB DNS name.
 
-Congratulations!
-
 
 # SUMMARY
-
 
 1. Create a VPC
 2. Create the subnets
@@ -360,3 +388,34 @@ server {
 38. Create the KMS key for RDS data encryption
 39. Create DB subnet group
 40. Create RDS/Aurora Database (edited) 
+
+
+## Blockers and troubleshooting
+
+Ensure that the Target groups are healthy. And that the nginx and httpd are up and running.
+
+Check you have your neccessary files downloaded and properly configured/updated.
+
+Ensure that the webservers can connect to your rds (database) instance.
+
+Checking from the webserver,
+
+`curl -L localhost`
+
+I was getting a 502 Bad Gateway error, to solve this, I checked the logs for my nginx instance (I had to SSH into it) and noticed it was returning a permission denied error, so I used:
+
+`sudo setsebool -P httpd_can_network_connect 1`
+
+To solve 403 errors that may arise from the internal webservers, simply add the above command to the user data script.
+
+While settting up RDS to connect to Wordpress, I forgot to create a database for Wordpress. Also I couldn't get the webservers to connect to the db, so I executed the following:
+
+`sudo setsebool -P httpd_can_network_connect_db 1`
+
+To deploy the applications, I used Ansible to configure tooling servers, manually configured Wordpress, from the Bastion instance.
+
+![wordpress](./images/wordress-page.PNG)
+
+![tooling login page](./images/tooling-page.PNG)
+
+![tooling second page](./images/tooling-page2.PNG)
