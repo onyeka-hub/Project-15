@@ -12,7 +12,7 @@
 
 sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 sudo yum install -y dnf-utils http://rpms.remirepo.net/enterprise/remi-release-8.rpm
-sudo yum install wget vim python3 telnet htop git mysql net-tools chrony -y
+sudo yum install -y wget vim python3 telnet htop git mysql net-tools chrony zip unzip
 sudo systemctl start chronyd
 sudo systemctl enable chronyd
 
